@@ -16,6 +16,6 @@ class StockQuant(models.Model):
             quants = quants.filtered(
                 lambda quant, planned=planned_consumed_date: quant.lot_id is False
                 or quant.lot_id
-                and quant.lot_id.expiration_date > planned
+                and quant.lot_id.expiration_date >= planned
             )
         return quants
