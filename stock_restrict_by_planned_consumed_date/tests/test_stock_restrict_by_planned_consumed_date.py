@@ -1,13 +1,16 @@
-# Copyright 2024 Foodles (https://www.foodles.co)
+# Copyright 2024-2025 Foodles (https://www.foodles.co)
 # @author Pierre Verkest <pierreverkest84@gmail.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
 from datetime import datetime
 
-from odoo.tests.common import SavepointCase
+from freezegun import freeze_time
+
+from odoo.tests.common import TransactionCase
 
 
-class TestReservationBasedOnPlannedConsumedDate(SavepointCase):
+@freeze_time("2024-01-13")
+class TestReservationBasedOnPlannedConsumedDate(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -26,7 +29,7 @@ class TestReservationBasedOnPlannedConsumedDate(SavepointCase):
 
         cls.product.write({"tracking": "lot", "use_expiration_date": True})
         cls.product2.write({"tracking": "lot", "use_expiration_date": False})
-        cls.lot1 = cls.env["stock.production.lot"].create(
+        cls.lot1 = cls.env["stock.lot"].create(
             {
                 "name": "lot1",
                 "expiration_date": "2024-01-25",
@@ -34,7 +37,7 @@ class TestReservationBasedOnPlannedConsumedDate(SavepointCase):
                 "company_id": cls.warehouse.company_id.id,
             }
         )
-        cls.lot2 = cls.env["stock.production.lot"].create(
+        cls.lot2 = cls.env["stock.lot"].create(
             {
                 "name": "lot2",
                 "expiration_date": "2024-02-02",
@@ -42,14 +45,14 @@ class TestReservationBasedOnPlannedConsumedDate(SavepointCase):
                 "company_id": cls.warehouse.company_id.id,
             }
         )
-        cls.lot_product2 = cls.env["stock.production.lot"].create(
+        cls.lot_product2 = cls.env["stock.lot"].create(
             {
                 "name": "lot product2",
                 "product_id": cls.product2.id,
                 "company_id": cls.warehouse.company_id.id,
             }
         )
-        cls.product.categ_id.route_ids |= cls.env["stock.location.route"].search(
+        cls.product.categ_id.route_ids |= cls.env["stock.route"].search(
             [("name", "ilike", "deliver in 2")]
         )
         cls.location_1 = cls.env["stock.location"].create(
@@ -59,37 +62,35 @@ class TestReservationBasedOnPlannedConsumedDate(SavepointCase):
             {"name": "loc2", "location_id": cls.warehouse.lot_stock_id.id}
         )
 
-    def _update_product_stock(self, qty, lot_id=False, location=None, product=None):
+    def _update_product_stock(self, quantity, lot=False, location=None, product=None):
+        if not location:
+            location = self.warehouse.lot_stock_id
+        location_id = location.id
         if not product:
             product = self.product
-        inventory = self.env["stock.inventory"].create(
+        product_id = product.id if product else self.product.id
+        lot_id = lot.id
+        self.env["stock.quant"].search(
+            [
+                ("location_id", "=", location_id),
+                ("product_id", "=", product_id),
+                ("lot_id", "=", lot_id),
+            ]
+        ).unlink()
+        self.env["stock.quant"].create(
             {
-                "name": "Test Inventory",
-                "product_ids": [(6, 0, product.ids)],
-                "state": "confirm",
-                "line_ids": [
-                    (
-                        0,
-                        0,
-                        {
-                            "product_qty": qty,
-                            "location_id": location.id
-                            if location
-                            else self.warehouse.lot_stock_id.id,
-                            "product_id": product.id,
-                            "product_uom_id": product.uom_id.id,
-                            "prod_lot_id": lot_id.id,
-                        },
-                    )
-                ],
+                "product_id": product_id,
+                "location_id": location_id,
+                "quantity": quantity,
+                "product_uom_id": product.uom_id.id,
+                "lot_id": lot_id,
             }
         )
-        inventory.action_validate()
 
     def test_procurement_without_expiration_date(self):
         self._update_product_stock(
             10,
-            lot_id=self.lot_product2,
+            lot=self.lot_product2,
             product=self.product2,
             location=self.location_1,
         )
@@ -138,7 +139,7 @@ class TestReservationBasedOnPlannedConsumedDate(SavepointCase):
         expect_lot,
         expect_from_location,
         expected_consumed_date,
-        expect_reserved_qty,
+        expect_reserved_quantity,
     ):
         concern_move_line = moves.filtered(
             lambda mov: mov.lot_id == expect_lot
@@ -146,13 +147,13 @@ class TestReservationBasedOnPlannedConsumedDate(SavepointCase):
             and mov.move_id.planned_consumed_date == expected_consumed_date
         )
         self.assertEqual(len(concern_move_line), 1)
-        self.assertEqual(concern_move_line.product_uom_qty, expect_reserved_qty)
+        self.assertEqual(concern_move_line.quantity, expect_reserved_quantity)
 
     def test_procurement_with_2_steps_output(self):
-        self._update_product_stock(10, lot_id=self.lot1, location=self.location_1)
-        self._update_product_stock(10, lot_id=self.lot1, location=self.location_2)
-        self._update_product_stock(5, lot_id=self.lot2, location=self.location_1)
-        self._update_product_stock(25, lot_id=self.lot2, location=self.location_2)
+        self._update_product_stock(10, lot=self.lot1, location=self.location_1)
+        self._update_product_stock(10, lot=self.lot1, location=self.location_2)
+        self._update_product_stock(5, lot=self.lot2, location=self.location_1)
+        self._update_product_stock(25, lot=self.lot2, location=self.location_2)
 
         # create a procurement with two lines of same product with different lots
         procurement_group = self.env["procurement.group"].create(
