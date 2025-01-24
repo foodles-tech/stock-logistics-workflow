@@ -13,7 +13,8 @@ class StockQuant(models.Model):
         planned_consumed_date = self.env.context.get("restrict_planned_consumed_date")
         if planned_consumed_date:
             quants = quants.filtered(
-                lambda quant, planned=planned_consumed_date: not quant.lot_id.expiration_date
+                lambda quant,
+                planned=planned_consumed_date: not quant.lot_id.expiration_date
                 or quant.lot_id.expiration_date >= planned
             )
         return quants
