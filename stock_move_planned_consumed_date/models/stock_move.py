@@ -10,7 +10,6 @@ class StockMove(models.Model):
     planned_consumed_date = fields.Datetime(
         "Planned consumed date",
         readonly=True,
-        states={"draft": [("readonly", False)]},
         help="This is the expected consumed/usage date of the product by the customer.",
     )
 

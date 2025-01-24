@@ -1,12 +1,12 @@
-# Copyright 2024 Foodles (https://www.foodles.co)
+# Copyright 2024-2025 Foodles (https://www.foodles.co)
 # @author Pierre Verkest <pierreverkest84@gmail.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 from datetime import datetime
 
-from odoo.tests.common import SavepointCase
+from odoo.tests.common import TransactionCase
 
 
-class TestPropagatePlannedConsumedDate(SavepointCase):
+class TestPropagatePlannedConsumedDate(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -22,7 +22,7 @@ class TestPropagatePlannedConsumedDate(SavepointCase):
             }
         )
 
-        cls.product.categ_id.route_ids |= cls.env["stock.location.route"].search(
+        cls.product.categ_id.route_ids |= cls.env["stock.route"].search(
             [("name", "ilike", "deliver in 2")]
         )
         cls.location_1 = cls.env["stock.location"].create(
@@ -32,29 +32,24 @@ class TestPropagatePlannedConsumedDate(SavepointCase):
             {"name": "loc2", "location_id": cls.warehouse.lot_stock_id.id}
         )
 
-    def _update_product_stock(self, qty, location=None):
-        inventory = self.env["stock.inventory"].create(
+    def _update_product_stock(self, quantity, location=None):
+        location_id = location.id if location else self.warehouse.lot_stock_id.id
+        product_id = self.product.id
+        product_uom_id = self.product.uom_id.id
+        self.env["stock.quant"].search(
+            [
+                ("product_id", "=", product_id),
+                ("location_id", "=", location_id),
+            ]
+        ).unlink()
+        self.env["stock.quant"].create(
             {
-                "name": "Test Inventory",
-                "product_ids": [(6, 0, self.product.ids)],
-                "state": "confirm",
-                "line_ids": [
-                    (
-                        0,
-                        0,
-                        {
-                            "product_qty": qty,
-                            "location_id": location.id
-                            if location
-                            else self.warehouse.lot_stock_id.id,
-                            "product_id": self.product.id,
-                            "product_uom_id": self.product.uom_id.id,
-                        },
-                    )
-                ],
+                "product_id": product_id,
+                "location_id": location_id,
+                "quantity": quantity,
+                "product_uom_id": product_uom_id,
             }
         )
-        inventory.action_validate()
 
     def test_procurement_with_2_steps_output(self):
         self._update_product_stock(10, location=self.location_1)

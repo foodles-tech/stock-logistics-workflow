@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Copyright 2023 Foodles (http://www.foodles.co).
+<!-- Copyright 2024-2025 Foodles (http://www.foodles.co).
      @author Pierre Verkest <pierreverkest84@gmail.com>
      License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html). -->
 <odoo>
@@ -9,16 +9,14 @@
         <field name="inherit_id" ref="stock.view_picking_form" />
         <field name="arch" type="xml">
             <xpath
-                expr="//page[@name='operations']/field[@name='move_ids_without_package']/tree/field[@name='reserved_availability']"
+                expr="//page[@name='operations']/field[@name='move_ids_without_package']/tree/field[@name='lot_ids']"
                 position="after"
             >
-                <field name="planned_consumed_date" optional="hide" />
-            </xpath>
-            <xpath
-                expr="//page[@name='operations']/field[@name='move_ids_without_package']/form//field[@name='reserved_availability']"
-                position="after"
-            >
-                <field name="planned_consumed_date" />
+                <field
+                    name="planned_consumed_date"
+                    readonly="state != 'draft'"
+                    optional="hide"
+                />
             </xpath>
         </field>
     </record>
