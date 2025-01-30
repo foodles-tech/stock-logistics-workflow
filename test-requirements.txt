@@ -1,0 +1,1 @@
+odoo-addon-stock-move-planned-consumed-date @ git+https://github.com/OCA/stock-logistics-workflow.git@refs/pull/1850/head#subdirectory=stock_move_planned_consumed_date
