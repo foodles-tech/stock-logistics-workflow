@@ -8,7 +8,7 @@ from odoo.tools.float_utils import float_is_zero
 class StockMove(models.Model):
     _inherit = "stock.move"
 
-    progress = fields.Float(compute="_compute_progress", store=True, aggregator="avg")
+    progress = fields.Float(compute="_compute_progress", store=True)
 
     @api.depends(
         "picked",
