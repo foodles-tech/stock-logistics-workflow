@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Copyright 2025 Foodles (https://www.foodles.co/).
+     @author Pierre Verkest <pierreverkest84@gmail.com>
+    License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
+-->
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">Stock settings: rounding time threshold hours</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="stock.res_config_settings_view_form" />
+        <field name="arch" type="xml">
+            <xpath
+                expr="//block[@name='operations_setting_container']"
+                position="inside"
+            >
+                <setting
+                    id="deadline_date_rounding_threshold_setting"
+                    string="Deadline Rounding Threshold"
+                    help="Number of hours used to round down deadline date time on stock move. While avoiding to mix moves or pickings with different deadlines, this setting gives a chance to merge them. (e.g., if set to 6 hours and deadline is 17:22:35 then deadline will be forced to 12:00:00). If not set, the default is 24 hours to force once a day."
+                >
+                    <field name="deadline_date_rounding_threshold" />
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>
